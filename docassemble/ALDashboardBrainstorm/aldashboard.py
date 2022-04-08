@@ -23,7 +23,7 @@ __all__ = ['install_from_github_url',
            'da_get_config',
            'da_get_config_as_file',
            'da_write_config',
-           'get_validated_github_username'
+           'Installer'
           ]
 
 def install_from_github_url(url:str, branch=""):
@@ -162,21 +162,23 @@ class Installer(DAObject):
       Otherwise, returns one or more errors with the names of da templates to use
       to show the errors to the user.
       """
-      self.errors = []
+      self.errors = []  # Reset
       github = Github(access_token)
       github_user = github.get_user()
       try:
           # Ensure the token has the right permissions
           scopes = github_user.raw_headers['x-oauth-scopes'].split(', ')
           if not 'repo' in scopes:
-            return [ErrorLikeObject(template_name='github_permissions_error', scopes=scopes)]
+            self.errors.append(ErrorLikeObject(template_name='github_permissions_error', scopes=scopes))
           else:
             return github_user.login
       except Exception as error:
           # GitHub doesn't recognize the token
           # github.GithubException.BadCredentialsException (401, 403) (specific exception not working)
+          self.errors.append( ErrorLikeObject(template_name='github_credentials_error') )
           #return [ErrorLikeObject(error=error, template_name='github_credentials_error')]
-          return [ErrorLikeObject(template_name='github_credentials_error')]
+          #error.template_name = 'github_credentials_error'
+          #return [ErrorLikeObject(template_name='github_credentials_error')]
 
 #  """Create object with a consistent signature, matching some of PyGithub's error signature."""
 #    """
@@ -207,7 +209,7 @@ class ErrorLikeObject(DAObject):
   #  #  self.message = kwargs.get('message', '')
   #  #  self.template_name = kwargs.get('template_name', 'no_template')
   #  #  self.data = {}
-  #  #  for key, value in kwargs:
+  #  #  for key, value in kwargs.items():
   #  #    self.data[ key ] = value  # Are duplicate values harmful?
   #      
   #  #if not hasattr( self, 'status' )

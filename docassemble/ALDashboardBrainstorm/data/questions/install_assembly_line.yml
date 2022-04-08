@@ -5,11 +5,19 @@ include:
 imports:
   - requests
 ---
+modules:
+  - .aldashboard
+---
 objects:
-  - errors: ErrorLikeObjectList.using(auto_gather=False, gathered=True)
+  - installer: Installer
 ---
 mandatory: True
 code: |
+
+  
+  if len(installer.errors) > 0:
+    installer.show_errors
+
   backup_file
   welcome
   basic_server_config
@@ -18,19 +26,8 @@ code: |
   # -- GitHub --
   # Token with repo permissions
   feedback_form_config
-  github_result = get_validated_github_username( the_config['github issues'].get( 'token', None ) )
-  if type( github_result ) is str:
-    the_config['github issues']['username'] = github_result
-  else:
-    log( github_result, 'console' )
-    log( type(github_result), 'console' )
-    log( github_result[0], 'console' )
-    log( type(github_result[0]), 'console' )
-    log( dir(github_result[0]), 'console' )
-    log( github_result[0].template_name, 'console' )
-    log( github_result[0].github_credentials_error.subject, 'console' )
-    errors = github_result
-    show_errors
+  the_config['github issues']['token']
+  complete_github_auth
   # Other config questions
   github_owners_list
   save_repo_owners
@@ -47,6 +44,12 @@ code: |
 ---
 code: |
   backup_file = da_get_config_as_file()
+---
+code: |
+  github_result = installer.get_validated_github_username( the_config['github issues']['token'] )
+  if type( github_result ) is str:
+    the_config['github issues']['username'] = github_result
+  complete_github_auth = True
 ---
 depends on:
   - allowed_github_repo_owners
@@ -364,9 +367,6 @@ data:
     help: |
       E-filing client for Tyler EFM
 ---
-modules:
-  - .aldashboard
----
 code: |
   for pkg_url in selected_mandatory_packages.true_values() + selected_optional_packages.true_values():
     pkgname = install_from_github_url(pkg_url)
@@ -403,16 +403,17 @@ fields:
 #  ${ value(error.data['error_template_name']).content }
 #  % endfor
 ---
-event: show_errors
+generic object: Installer
+event: x.show_errors
 id: error page
 question: |
   Sorry, something went wrong
-#subquestion: |
-#  % for error in errors:
-#  ##### :exclamation-circle: ${ error[error.template_name].subject }
-#  
-#  ${ error[error.template_name].content }
-#  % endfor
+subquestion: |
+  % for error in x.errors:
+  ##### :exclamation-circle: ${ value(error.attr_name(error.template_name)).subject }
+  
+  ${ value(error.attr_name(error.template_name)).content }
+  % endfor
 ---
 generic object: ErrorLikeObject
 template: x.github_credentials_error
@@ -426,7 +427,7 @@ template: x.github_permissions_error
 subject: |
   GitHub token permissions
 content: |
-  The GitHub token you gave is missing 'repo' level permissions. Instead, it has these permission levels: **${ x['data']['scopes'] }**. Make a new token that includes 'repo' level permissions.
+  The GitHub token you gave is missing 'repo' level permissions. Instead, it has these permission levels: **${ 'some list' }**. Make a new token that includes 'repo' level permissions.
 ---
 event: end_screen
 question: |
