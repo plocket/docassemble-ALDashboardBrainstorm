@@ -9,12 +9,11 @@ modules:
   - .aldashboard
 ---
 objects:
-  - installer: Installer
+  - installer: ALPackageInstaller
 ---
 mandatory: True
 code: |
-
-  
+  # Show any errors first
   if len(installer.errors) > 0:
     installer.show_errors
 
@@ -24,10 +23,7 @@ code: |
   recommended_api_config
   
   # -- GitHub --
-  # Token with repo permissions
-  # What permissions do we need?
-  # One post says `public_repo` and `repo` are the minimal ones that grant issue writing access. https://github.community/t/what-permission-level-do-i-need-to-create-issues-using-pat/124769/2
-  # I tried to look through them myself and see which others would grant such permissions, but I couldn't suss it out, so I have created a new issue to get a list of all of them: https://github.community/t/all-pat-permissions-that-allow-issue-creation/243944
+  # Token with repo permission scope
   feedback_form_config
   the_config['github issues']['token']
   complete_github_auth

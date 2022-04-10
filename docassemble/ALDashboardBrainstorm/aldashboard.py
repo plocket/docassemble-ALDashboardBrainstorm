@@ -23,7 +23,7 @@ __all__ = ['install_from_github_url',
            'da_get_config',
            'da_get_config_as_file',
            'da_write_config',
-           'Installer',
+           'ALPackageInstaller',
            'ErrorLikeObject'
           ]
 
@@ -152,7 +152,8 @@ def speedy_get_sessions(user_id:int=None, filename:str=None)->List[Tuple]:
   return sessions
 
 
-class Installer(DAObject):
+class ALPackageInstaller(DAObject):
+  """Methods and state for installing AssemblyLine"""
   def init( self, *pargs, **kwargs ):
     super().init(*pargs, **kwargs)
     self.initializeAttribute('errors', ErrorList)
@@ -160,11 +161,9 @@ class Installer(DAObject):
   def get_validated_github_username(self, access_token: str ):
       """
       Given a valid GitHub `access_token`, returns the username associated with it.
-      Otherwise, returns one or more errors with the names of da templates to use
-      to show the errors to the user.
+      Otherwise, adds one or more errors to the installer.
       """
       self.errors.clear()  # Reset
-      
       github = Github(access_token)
       github_user = github.get_user()
       try:
@@ -182,59 +181,24 @@ class Installer(DAObject):
 
 
 class ErrorList(DAList):
+  """Contains `ErrorLikeObject`s."""
   def init( self, *pargs, **kwargs ):
     super().init(*pargs, **kwargs)
     self.object_type = ErrorLikeObject
-    #self.object_type = DAObject
     self.gathered = True
-
-#  """Create object with a consistent signature, matching some of PyGithub's error signature."""
-#    """
-#    To be effective for our interview's error display, kwargs should include `template_name`.
-#    PyGitHub errors: https://pygithub.readthedocs.io/en/latest/utilities.html#module-github.GithubException
-#    """
-#class ErrorLikeObject(DAObject):
-#  
-#  def init( self, *pargs, **kwargs ):
-#    super().init(*pargs, **kwargs)
-#    self.status = kwargs.get('status', 0)
-#    self.data = kwargs.get('data', {})
-#    self.template_name = kwargs.get('template_name', 'no_template')
     
 
 class ErrorLikeObject(DAObject):
+  """
+  An object with a `template_name` that identifieds the DALazyTemplate that will
+  show its error. It can contain any other attributes so its template can access them
+  as needed. DAObject doesn't seem to be enough to allow template definition.
+  """
   def init( self, *pargs, **kwargs ):
     super().init(*pargs, **kwargs)
-    pass
+    # `unknown_error` can be a default template for unexpected errors to use
+    self.template_name = kwargs.get('template_name', 'unknown_error')
 
-  #def init( self, *pargs, **kwargs ):
-  #  super().init(*pargs, **kwargs)
-  #  self.status = kwargs.get('status', 0)
-  #  self.data = kwargs.get('data', {})
-  #  self.template_name = kwargs.get('template_name', 'no_template')
-  
-  #def init( self, *pargs, **kwargs ):
-  #  super().init(*pargs, **kwargs)
-  #  self.status = kwargs.get('status', 0)
-  #  self.template_name = kwargs.get('template_name', 'no_template')
-  #  ## Default values
-  #  #if not kwargs.get( 'error', None ) is None:
-  #  #  self.status = kwargs.get( 'error', {} ).get('status', 0)
-  #  #  self.data = kwargs.get( 'error', {} ).get('data', None )
-  #  #  self.headers = kwargs.get( 'error', {} ).get( 'headers', None )
-  #  #  self.template_name = kwargs.get('template_name', 'no_template')
-  #  #else:
-  #  #  # Own data
-  #  #  self.status = kwargs.get('status', 0)
-  #  #  self.message = kwargs.get('message', '')
-  #  #  self.template_name = kwargs.get('template_name', 'no_template')
-  #  #  self.data = {}
-  #  #  for key, value in kwargs.items():
-  #  #    self.data[ key ] = value  # Are duplicate values harmful?
-  #      
-  #  #if not hasattr( self, 'status' )
-  #  #self.status = status
-  #  #self.data = { 'message': message, 'template_name': template_name }
 
 #  select userdict.filename, num_keys, userdictkeys.user_id, modtime, userdict.key from userdict natural join (select key, max(modtime) as modtime, count(key) as num_keys from userdict group by key) mostrecent left join userdictkeys on userdictkeys.key = userdict.key order by modtime desc;
 # db.session.query

@@ -2,7 +2,7 @@ modules:
   - .aldashboard
 ---
 objects:
-  - installer: Installer
+  - installer: ALPackageInstaller
 ---
 generic object: ErrorLikeObject
 template: x.github_credentials_error
@@ -15,7 +15,7 @@ event: show_errors
 question: Sorry, something went wrong
 subquestion: |
   % for err in installer.errors:
-  #### ${ err.attr(err.template_name).subject }
+  #### ${ getattr(err, err.template_name).subject }
   
   ${ getattr(err, err.template_name).content }
   % endfor
