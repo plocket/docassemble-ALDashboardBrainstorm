@@ -25,6 +25,9 @@ code: |
   
   # -- GitHub --
   # Token with repo permissions
+  # What permissions do we need?
+  # One post says `public_repo` and `repo` are the minimal ones that grant issue writing access. https://github.community/t/what-permission-level-do-i-need-to-create-issues-using-pat/124769/2
+  # I tried to look through them myself and see which others would grant such permissions, but I couldn't suss it out, so I have created a new issue to get a list of all of them: https://github.community/t/all-pat-permissions-that-allow-issue-creation/243944
   feedback_form_config
   the_config['github issues']['token']
   complete_github_auth
@@ -234,8 +237,6 @@ fields:
     hide if: skip_efile
     required: False
 ---
-# This must be tested with a private repository
-#  If your GitHub organization's repositories are private, the account must have permission to see it and file issues.
 id: github PAT
 continue button field: feedback_form_config
 question: |
@@ -391,17 +392,6 @@ fields:
     code: |
       [{key: optional_packages[key].get('label'), "help": optional_packages[key].get('help')} for key in optional_packages]  
     none of the above: False      
-#---
-#event: show_errors
-#id: error page
-#question: |
-#  Sorry, something went wrong
-#subquestion: |
-#  % for error in errors:
-#  ##### :exclamation-circle: ${ value(error[.data['error_template_name']).subject }
-#  
-#  ${ value(error.data['error_template_name']).content }
-#  % endfor
 ---
 generic object: Installer
 event: x.show_errors
@@ -410,9 +400,11 @@ question: |
   Sorry, something went wrong
 subquestion: |
   % for error in x.errors:
-  ##### :exclamation-circle: ${ value(error.attr_name(error.template_name)).subject }
+  ##### :exclamation-circle: ${ getattr(error, error.template_name).subject }
   
-  ${ value(error.attr_name(error.template_name)).content }
+  ${ getattr(error, error.template_name) }
+  
+  ---
   % endfor
 ---
 generic object: ErrorLikeObject
@@ -427,7 +419,7 @@ template: x.github_permissions_error
 subject: |
   GitHub token permissions
 content: |
-  The GitHub token you gave is missing 'repo' level permissions. Instead, it has these permission levels: **${ 'some list' }**. Make a new token that includes 'repo' level permissions.
+  The GitHub token you gave is missing 'repo' permissions. Instead, it has these permission: **${ comma_and_list(x.scopes) }**. Make a new token that includes 'repo' level permissions.
 ---
 event: end_screen
 question: |

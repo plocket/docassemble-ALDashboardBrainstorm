@@ -1,0 +1,36 @@
+modules:
+  - .aldashboard
+---
+objects:
+  - installer: Installer
+---
+generic object: ErrorLikeObject
+template: x.github_credentials_error
+subject: |
+  GitHub token
+content: |
+  GitHub does not recognize the token
+---
+event: show_errors
+question: Sorry, something went wrong
+subquestion: |
+  % for err in installer.errors:
+  #### ${ err.attr(err.template_name).subject }
+  
+  ${ getattr(err, err.template_name).content }
+  % endfor
+---
+event: end
+question: | 
+  The end
+---
+mandatory: True
+code: |
+  if len(installer.errors) > 0:
+    show_errors
+  
+  username
+  end
+---
+code: |
+  username = installer.get_validated_github_username('123435')

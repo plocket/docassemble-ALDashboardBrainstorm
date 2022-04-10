@@ -8,7 +8,7 @@ import docassemble.webapp.worker
 from docassemble.webapp.server import user_can_edit_package, get_master_branch, install_git_package, redirect, should_run_create, flash, url_for, restart_all
 from docassemble.base.config import daconfig
 from docassemble.webapp.backend import cloud
-from docassemble.base.util import log, DAFile, DAObject
+from docassemble.base.util import log, DAFile, DAObject, DAList
 from ruamel.yaml import YAML
 from ruamel.yaml.compat import StringIO
 import re
@@ -23,7 +23,8 @@ __all__ = ['install_from_github_url',
            'da_get_config',
            'da_get_config_as_file',
            'da_write_config',
-           'Installer'
+           'Installer',
+           'ErrorLikeObject'
           ]
 
 def install_from_github_url(url:str, branch=""):
@@ -154,44 +155,63 @@ def speedy_get_sessions(user_id:int=None, filename:str=None)->List[Tuple]:
 class Installer(DAObject):
   def init( self, *pargs, **kwargs ):
     super().init(*pargs, **kwargs)
-    self.errors = []
-    
+    self.initializeAttribute('errors', ErrorList)
+
   def get_validated_github_username(self, access_token: str ):
       """
       Given a valid GitHub `access_token`, returns the username associated with it.
       Otherwise, returns one or more errors with the names of da templates to use
       to show the errors to the user.
       """
-      self.errors = []  # Reset
+      self.errors.clear()  # Reset
+      
       github = Github(access_token)
       github_user = github.get_user()
       try:
           # Ensure the token has the right permissions
           scopes = github_user.raw_headers['x-oauth-scopes'].split(', ')
           if not 'repo' in scopes:
-            self.errors.append(ErrorLikeObject(template_name='github_permissions_error', scopes=scopes))
+            self.errors.appendObject(template_name='github_permissions_error', scopes=scopes)
+            return None
           else:
             return github_user.login
       except Exception as error:
           # GitHub doesn't recognize the token
           # github.GithubException.BadCredentialsException (401, 403) (specific exception not working)
-          self.errors.append( ErrorLikeObject(template_name='github_credentials_error') )
-          #return [ErrorLikeObject(error=error, template_name='github_credentials_error')]
-          #error.template_name = 'github_credentials_error'
-          #return [ErrorLikeObject(template_name='github_credentials_error')]
+          self.errors.appendObject(template_name='github_credentials_error')
+
+
+class ErrorList(DAList):
+  def init( self, *pargs, **kwargs ):
+    super().init(*pargs, **kwargs)
+    self.object_type = ErrorLikeObject
+    #self.object_type = DAObject
+    self.gathered = True
 
 #  """Create object with a consistent signature, matching some of PyGithub's error signature."""
 #    """
 #    To be effective for our interview's error display, kwargs should include `template_name`.
 #    PyGitHub errors: https://pygithub.readthedocs.io/en/latest/utilities.html#module-github.GithubException
 #    """
+#class ErrorLikeObject(DAObject):
+#  
+#  def init( self, *pargs, **kwargs ):
+#    super().init(*pargs, **kwargs)
+#    self.status = kwargs.get('status', 0)
+#    self.data = kwargs.get('data', {})
+#    self.template_name = kwargs.get('template_name', 'no_template')
+    
+
 class ErrorLikeObject(DAObject):
-  
   def init( self, *pargs, **kwargs ):
     super().init(*pargs, **kwargs)
-    self.status = kwargs.get('status', 0)
-    self.data = kwargs.get('data', {})
-    self.template_name = kwargs.get('template_name', 'no_template')
+    pass
+
+  #def init( self, *pargs, **kwargs ):
+  #  super().init(*pargs, **kwargs)
+  #  self.status = kwargs.get('status', 0)
+  #  self.data = kwargs.get('data', {})
+  #  self.template_name = kwargs.get('template_name', 'no_template')
   
   #def init( self, *pargs, **kwargs ):
   #  super().init(*pargs, **kwargs)
